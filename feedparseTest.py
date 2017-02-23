@@ -9,6 +9,9 @@ import pandas as pd
 import numpy as np
 import feedparser as fp
 import calendar
+import html.parser
+import string
+from nltk.tokenize import word_tokenize
 
 # get feed sources & URLs
 feed_list = pd.DataFrame({'feed_source':['BBCNews', 'Guardian', 'Independent', 'alJazeera'],
@@ -28,18 +31,51 @@ for i in range(0, n):
     if m > maxArticles:
         m = maxArticles # only use maxArticles if less than actual number of articles
     
-    articles_i = pd.DataFrame(feed.entries, columns = ['published_parsed', 'title', 'summary', 'link'])
+    articles_i = pd.DataFrame(feed.entries, columns = ['published_parsed', 'title', 'summary', 'link']) # put selected columns from feed.entries into a DataFrame
+    articles_i['source'] = pd.Series(feed_list['feed_source'][i], index = range(0, m))
+                 
     if i == 0:
         articles_df = articles_i[:m][:]
     else:
         articles_df = pd.concat([articles_df, articles_i[:m][:]])
         
 articles_df = articles_df.reset_index(drop=True)
-articles_df['published_parsed'] = articles_df['published_parsed'].apply(calendar.timegm) #change to UNIX time
 articles_df = articles_df.rename(columns={'published_parsed': 'time'})
+articles_df['time'] = articles_df['time'].apply(calendar.timegm) #change to UNIX time
 
+
+
+### Text Preprocessing  ###
+   
+#Unescape HTML from summary and title           
+articles_df['summary'] = articles_df['summary'].apply(html.parser.HTMLParser().unescape) 
+articles_df['title'] = articles_df['title'].apply(html.parser.HTMLParser().unescape)
+
+#All chars to lowercase
+articles_df['summary'] = articles_df['summary'].apply(lambda x: x.lower())
+articles_df['title'] = articles_df['title'].apply(lambda x: x.lower())
+
+#Replace '.' and ',' with no character so that numbers are contained as a single element when tokenized
+articles_df['summary'] = articles_df['summary'].apply(lambda x: x.replace(',', '').replace('.', ''))
+articles_df['title'] = articles_df['title'].apply(lambda x: x.replace(',', '').replace('.', ''))
+
+#Replace other punctuation with ' '
+puncTable = str.maketrans(string.punctuation, ' '*len(string.punctuation))
+articles_df['summary'] = articles_df['summary'].apply(lambda x: x.translate(puncTable))
+articles_df['title'] = articles_df['title'].apply(lambda x: x.translate(puncTable)) 
+
+#Replace currency symbols with words
+articles_df['summary'] = articles_df['summary'].apply(lambda x: x.replace('£', 'pound').replace('$', 'dollar').replace('€', 'euro'))
+articles_df['title'] = articles_df['title'].apply(lambda x: x.replace('£', 'pound').replace('$', 'dollar').replace('€', 'euro'))
+
+#Tokenize words
+articles_df['summary'] = articles_df['summary'].apply(word_tokenize)
+articles_df['title'] = articles_df['title'].apply(word_tokenize)
+
+print(type( articles_df['summary']))
+    
 print(articles_df.shape)
-print(articles_df.head())    
+print(articles_df.head())  
 
 
 

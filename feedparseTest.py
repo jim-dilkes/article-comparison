@@ -6,7 +6,6 @@ Created on Wed Feb 22 16:39:24 2017
 """
 
 import pandas as pd
-import numpy as np
 import feedparser as fp
 import calendar
 import html.parser
@@ -21,7 +20,7 @@ feed_list = pd.DataFrame({'feed_source':['BBCNews', 'Guardian', 'Independent', '
                           'http://www.aljazeera.com/xml/rss/all.xml']})
 
 n = feed_list['feed_url'].count() # number of feeds to be read
-maxArticles = 50 # maximum number of articles to read from each feed
+maxArticles = 50 # maximum number of articles that can be read from each feed
 
 for i in range(0, n):
     feed_url = feed_list['feed_url'][i] 
@@ -43,8 +42,6 @@ articles_df = articles_df.reset_index(drop=True)
 articles_df = articles_df.rename(columns={'published_parsed': 'time'})
 articles_df['time'] = articles_df['time'].apply(calendar.timegm) #change to UNIX time
 
-
-
 ### Text Preprocessing  ###
    
 #Unescape HTML from summary and title           
@@ -56,8 +53,9 @@ articles_df['summary'] = articles_df['summary'].apply(lambda x: x.lower())
 articles_df['title'] = articles_df['title'].apply(lambda x: x.lower())
 
 #Replace '.' and ',' with no character so that numbers are contained as a single element when tokenized
-articles_df['summary'] = articles_df['summary'].apply(lambda x: x.replace(',', '').replace('.', ''))
-articles_df['title'] = articles_df['title'].apply(lambda x: x.replace(',', '').replace('.', ''))
+#Also remove bullet points and apostrophes
+articles_df['summary'] = articles_df['summary'].apply(lambda x: x.replace(',', '').replace('.', '').replace('•', '').replace("'", ''))
+articles_df['title'] = articles_df['title'].apply(lambda x: x.replace(',', '').replace('.', '').replace('•', '').replace("'", ''))
 
 #Replace other punctuation with ' '
 puncTable = str.maketrans(string.punctuation, ' '*len(string.punctuation))
@@ -72,8 +70,20 @@ articles_df['title'] = articles_df['title'].apply(lambda x: x.replace('£', 'pou
 articles_df['summary'] = articles_df['summary'].apply(word_tokenize)
 articles_df['title'] = articles_df['title'].apply(word_tokenize)
 
-print(type( articles_df['summary']))
-    
+#Replace all numbers with the word 'number' (probably a much better way to do this)
+
+def containsNumbers(inputString):
+    return any(char.isdigit() for char in inputString)
+for i in range(0, len(articles_df['summary'])):
+        for j in range(0, len(articles_df['summary'][i])):
+            if containsNumbers(articles_df['summary'][i][j]):
+                articles_df['summary'][i][j] = 'number'
+                
+for i in range(0, len(articles_df['title'])):
+        for j in range(0, len(articles_df['title'][i])):
+            if containsNumbers(articles_df['title'][i][j]):
+                articles_df['title'][i][j] = 'number'
+                                          
 print(articles_df.shape)
 print(articles_df.head())  
 

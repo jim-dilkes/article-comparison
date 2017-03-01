@@ -12,16 +12,20 @@ from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 
+
+n_words = 1000
+
+
 #Load article data
 
 print("Loading data...")
-articles = pd.read_csv('labelledArticle.csv', header = 0, sep="\t", encoding = "ISO-8859-1")
+articles = pd.read_csv('labelledArticles.csv', header = 0, sep=",", encoding = "ISO-8859-1")
 n_articles = len(articles['title'])
 
 #Generate bag of words for the article titles and summaries
 
 articles['words'] = articles['title'] + articles['summary']
-article_vectorizer = CountVectorizer(max_df=0.99, min_df=2, max_features = 400,
+article_vectorizer = CountVectorizer(max_df=0.99, min_df=2, max_features = n_words,
                                       stop_words='english', decode_error='ignore',
                                       analyzer = 'word')
 freq = (article_vectorizer.fit_transform(articles['words'])).toarray()
@@ -51,10 +55,10 @@ for i in range(n_articles):
     
     
 
-matched_pairs = featureVectors['label'].sum()
-total_pairs = len(featureVectors['label'])
-print('\nMatched paired articles: ' + str(matched_pairs))
-print('Total paired articles: ' + str(total_pairs))
+n_matched_pairs = featureVectors['label'].sum()
+n_total_pairs = len(featureVectors['label'])
+print('\nMatched paired articles: ' + str(n_matched_pairs))
+print('Total paired articles: ' + str(n_total_pairs))
 
 #Select a training set (still need to split into training & test set)
 
@@ -62,47 +66,76 @@ matchedVectors = featureVectors[featureVectors.label == 1]
 unmatchedVectors = featureVectors[featureVectors.label == 0]
 
 propMatchedArticles = 1/2 #ratio of matched to unmatched pairs. Don't set to 0.
+n_matched_desired = 150
 
-totUnmatched = round(matched_pairs/propMatchedArticles)
-if totUnmatched > len(unmatchedVectors['label']): totUnmatched = unmatchedVectors
+if n_matched_desired < n_matched_pairs: n_matched_desired = n_matched_pairs
 
-selectUnmatched = unmatchedVectors.sample(totUnmatched, axis = 0)
+n_unmatched = round(n_matched_pairs/propMatchedArticles)
+if n_unmatched > len(unmatchedVectors['label']): n_unmatched = len(unmatchedVectors['label'])
 
-frames = [matchedVectors, selectUnmatched]
-sampleVectors = pd.concat(frames)
+matchedVectors = matchedVectors.sample(n_matched_desired, axis = 0)
+unmatchedVectors = unmatchedVectors.sample(n_unmatched, axis = 0)
+
+frames = [matchedVectors, unmatchedVectors]
+sampleData = pd.concat(frames)
 
 print('\nTraining set sample:')
-print(sampleVectors.sample(10))
+print(sampleData.sample(10))
 
 #Feature Scaling
 
-sampleVectors['deltaTime'] = sampleVectors['deltaTime'].subtract(sampleVectors['deltaTime'].mean())
-sampleVectors['deltaTime'] = sampleVectors['deltaTime'].multiply(1/(sampleVectors['deltaTime'].max() - sampleVectors['deltaTime'].min()))
+sampleData['deltaTime'] = sampleData['deltaTime'].subtract(sampleData['deltaTime'].mean())
+sampleData['deltaTime'] = sampleData['deltaTime'].multiply(1/(sampleData['deltaTime'].max() - sampleData['deltaTime'].min()))
 
-sampleVectors['deltaFreq'] = sampleVectors['deltaFreq'].subtract(sampleVectors['deltaFreq'].mean())
-sampleVectors['deltaFreq'] = sampleVectors['deltaFreq'].multiply(1/(sampleVectors['deltaFreq'].max() - sampleVectors['deltaFreq'].min()))
-
+sampleData['deltaFreq'] = sampleData['deltaFreq'].subtract(sampleData['deltaFreq'].mean())
+sampleData['deltaFreq'] = sampleData['deltaFreq'].multiply(1/(sampleData['deltaFreq'].max() - sampleData['deltaFreq'].min()))
 
 #Generate polynomial features
 
-sampleVectors['deltaTime_2'] = sampleVectors['deltaTime'].apply(lambda x: x ** 2)
-sampleVectors['deltaFreq_2'] = sampleVectors['deltaFreq'].apply(lambda x: x ** 2)
-sampleVectors['deltaTime_3'] = sampleVectors['deltaTime'].apply(lambda x: x ** 3)
-sampleVectors['deltaFreq_3'] = sampleVectors['deltaFreq'].apply(lambda x: x ** 3)
+sampleData['deltaTime_2'] = sampleData['deltaTime'].apply(lambda x: x ** 2)
+sampleData['deltaFreq_2'] = sampleData['deltaFreq'].apply(lambda x: x ** 2)
+sampleData['deltaTime_3'] = sampleData['deltaTime'].apply(lambda x: x ** 3)
+sampleData['deltaFreq_3'] = sampleData['deltaFreq'].apply(lambda x: x ** 3)
+sampleData['deltaTime_4'] = sampleData['deltaTime'].apply(lambda x: x ** 4)
+sampleData['deltaFreq_4'] = sampleData['deltaFreq'].apply(lambda x: x ** 4)
+
+#Split into training and test sets
+
+msk = np.random.rand(len(sampleData))<0.8
+trainData = sampleData[msk]
+testData = sampleData[~msk]
+
+print(trainData.head())
 
 #Fit training set to a logistic regression
 
-X = pd.DataFrame(sampleVectors, columns = ['deltaTime', 
+Xtrain = pd.DataFrame(trainData, columns = ['deltaTime', 
                                            'deltaFreq', 
                                            'deltaTime_2', 
-                                           'deltaFreq_2',
+                                          'deltaFreq_2',
                                            'deltaTime_3', 
-                                           'deltaFreq_3'
+                                          'deltaFreq_3',
+                                          'deltaTime_4' 
+#                                           'deltaFreq_4'
                                            ]).as_matrix()
-y = sampleVectors['label']
+    
+Xtest = pd.DataFrame(testData, columns = ['deltaTime', 
+                                           'deltaFreq', 
+                                           'deltaTime_2', 
+                                          'deltaFreq_2',
+                                           'deltaTime_3', 
+                                           'deltaFreq_3',
+                                          'deltaTime_4' 
+#                                           'deltaFreq_4'
+                                           ]).as_matrix()
+
+print(Xtrain.shape)
+y = trainData['label']
 logreg = linear_model.LogisticRegression()
-logreg.fit(X, y)
-print('\nTraining set score: ' + str(logreg.score(X, y)))
+logreg.fit(Xtrain, y)
+print('\nTraining set score: ' + str(logreg.score(Xtrain, y)))
+print('\nTest set score: ' + str(logreg.score(Xtest, testData['label'])))
+
 
 print('\nintercept_ '  + str(logreg.intercept_.shape) + ':\n' + str(logreg.intercept_ ))
 print('\ncoef_ ' + str(logreg.coef_.shape) + ':\n' + str(logreg.coef_))
@@ -111,10 +144,10 @@ print('\ncoef_ ' + str(logreg.coef_.shape) + ':\n' + str(logreg.coef_))
 
 #Generate grid for colour plot
 h = .005
-x_min, x_max = X[:, 0].min() - .1, X[:, 0].max() + .1
-y_min, y_max = X[:, 1].min() - .05, X[:, 1].max() + .05
+x_min, x_max = Xtrain[:, 0].min() - .1, Xtrain[:, 0].max() + .1
+y_min, y_max = Xtrain[:, 1].min() - .05, Xtrain[:, 1].max() + .05
 xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h/20))
-Z = logreg.predict(np.c_[xx.ravel(), yy.ravel(), xx.ravel() ** 2, yy.ravel() **2, xx.ravel()**3, yy.ravel()**3])
+Z = logreg.predict(np.c_[xx.ravel(), yy.ravel(), xx.ravel() ** 2, yy.ravel() ** 2, xx.ravel() ** 3, yy.ravel() ** 3, xx.ravel() ** 4])
 
 #Put the result into a colour plot
 Z = Z.reshape(xx.shape)
@@ -122,7 +155,7 @@ plt.figure(1, figsize=(4, 3))
 plt.pcolormesh(xx, yy, Z, cmap='coolwarm')
 
 #Add the training set data points
-plt.scatter(sampleVectors['deltaTime'], sampleVectors['deltaFreq'], c=sampleVectors['label'], cmap='bwr', edgecolor='black')
+plt.scatter(testData['deltaTime'], testData['deltaFreq'], c=testData['label'], cmap='bwr', edgecolor='black')
 plt.show()
 
 

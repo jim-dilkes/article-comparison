@@ -12,9 +12,12 @@ from bs4 import BeautifulSoup
 import string
 from nltk.tokenize import word_tokenize
 
-#Load sources &URLs from file
+source_file_location = 'sources/'
 sources_file_name = 'usNewsSources.csv'
-feed_list = pd.read_csv(sources_file_name, header=0)
+output_file_location = 'output/'
+
+#Load sources &URLs from file
+feed_list = pd.read_csv(source_file_location + sources_file_name, header=0)
 
 print('Accessing feeds:')
 print(feed_list)
@@ -92,7 +95,7 @@ articles_df['summary'] = articles_df['summary'].apply(dictAndDetokenize)
 print(articles_df.shape)
 print(articles_df.head())
 #Export for story matching
-articles_df.to_csv('sampleArticles_' + sources_file_name, sep='\t')
+articles_df.to_csv(output_file_location + 'sampleArticles_' + sources_file_name, sep='\t')
 
 
 

@@ -12,9 +12,8 @@ from sklearn.preprocessing import normalize
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 
-
-n_words = 1000
-
+n_words = 1000 #Number of words using in bag of words
+n_matched_desired = 150 #Maximum number of matched pairs used in the full trainin & test data set
 
 #Load article data
 
@@ -52,8 +51,6 @@ for i in range(n_articles):
              'deltaFreq': np.linalg.norm(np.subtract(freq[i],freq[j])),
              'label': sameArticle,
              'StoryID': story_id }, ignore_index=True)
-    
-    
 
 n_matched_pairs = featureVectors['label'].sum()
 n_total_pairs = len(featureVectors['label'])
@@ -66,7 +63,6 @@ matchedVectors = featureVectors[featureVectors.label == 1]
 unmatchedVectors = featureVectors[featureVectors.label == 0]
 
 propMatchedArticles = 1/2 #ratio of matched to unmatched pairs. Don't set to 0.
-n_matched_desired = 150
 
 if n_matched_desired < n_matched_pairs: n_matched_desired = n_matched_pairs
 
@@ -128,14 +124,11 @@ Xtest = pd.DataFrame(testData, columns = ['deltaTime',
                                           'deltaTime_4' 
 #                                           'deltaFreq_4'
                                            ]).as_matrix()
-
-print(Xtrain.shape)
-y = trainData['label']
 logreg = linear_model.LogisticRegression()
-logreg.fit(Xtrain, y)
-print('\nTraining set score: ' + str(logreg.score(Xtrain, y)))
-print('\nTest set score: ' + str(logreg.score(Xtest, testData['label'])))
+logreg.fit(Xtrain, trainData['label'])
 
+print('\nTraining set score: ' + str(logreg.score(Xtrain, trainData['label'])))
+print('\nTest set score: ' + str(logreg.score(Xtest, testData['label'])))
 
 print('\nintercept_ '  + str(logreg.intercept_.shape) + ':\n' + str(logreg.intercept_ ))
 print('\ncoef_ ' + str(logreg.coef_.shape) + ':\n' + str(logreg.coef_))

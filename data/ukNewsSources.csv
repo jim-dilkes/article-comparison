@@ -1,0 +1,13 @@
+feed_source,feed_url
+BBCNewsUK,http://feeds.bbci.co.uk/news/uk/rss.xml
+GuardianUK,https://www.theguardian.com/uk-news/rss
+IndependentUK,http://www.independent.co.uk/news/uk/rss
+SkyNewsUK,http://feeds.skynews.com/feeds/rss/uk.xml
+ReutersUK,http://feeds.reuters.com/reuters/UKdomesticNews
+RTUK,https://www.rt.com/rss/uk/
+YahooUK,https://uk.news.yahoo.com/rss
+HuffPostUK,http://www.huffingtonpost.co.uk/feeds/verticals/uk/news.xml
+FTUK,http://www.ft.com/rss/home/uk
+SunUK,https://www.thesun.co.uk/news/uknews/feed/
+DailyExpressUK,http://feeds.feedburner.com/daily-express-uk-news
+MirrorUK,http://www.mirror.co.uk/news/uk-news/rss.xml

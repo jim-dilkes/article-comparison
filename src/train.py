@@ -14,6 +14,7 @@ from sklearn import linear_model
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import Pipeline
+from sklearn.metrics import f1_score
 
 input_location = ""
 input_file_name = "labelledArticles.csv"
@@ -112,7 +113,9 @@ y_test = y[~msk, :]
 
 pipe.fit(X_train, y_train)
 print("Training set score: " + str(pipe.score(X_train, y_train)))
+print("Training F1 score: " + str(f1_score(y_train, pipe.predict(X_train))))
 print("Test set score: " + str(pipe.score(X_test, y_test)))
+print("Test F1 score: " + str(f1_score(y_test, pipe.predict(X_test))))
 
 # Plot Results
 

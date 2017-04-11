@@ -13,8 +13,8 @@ articles = pd.read_csv('output/articlePairFeatures.csv', header=0, sep=",", enco
 
 # Show distribution of word content difference between paris of articles
 diff_articles = articles[articles.deltaFreq != 2 ** 0.5]  # Remove articles that have no key words in common
-same = diff_articles[articles.label == True]
-different = diff_articles[articles.label == False]
+same = diff_articles[diff_articles.label == True]
+different = diff_articles[diff_articles.label == False]
 
 plt.hist([same.deltaFreq, different.deltaFreq],
          alpha=0.60,
